@@ -1,4 +1,4 @@
-# rsut-mcps
+# rsut-mcp-tools
 
 一组用 Rust 编写的 MCP（Model Context Protocol）工具集，为 AI 提供本机能力扩展。
 
