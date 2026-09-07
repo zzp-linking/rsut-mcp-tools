@@ -11,6 +11,8 @@ pub struct SearchFilesArgs {
     pub directory: String,
     pub mode: Option<String>,
     pub is_glob: Option<bool>,
+    /// 本次调用额外忽略的路径正则，与启动参数 --ignore 合并生效。
+    pub ignore: Option<String>,
 }
 
 pub fn search_files(args_value: Value, config: &Config) -> String {
@@ -22,6 +24,11 @@ pub fn search_files(args_value: Value, config: &Config) -> String {
     let mode = args.mode.as_deref().unwrap_or("global");
     let is_glob = args.is_glob.unwrap_or(false);
     let single_mode = mode == "single";
+
+    let config = match config.with_call_ignore(args.ignore.as_deref()) {
+        Ok(c) => c,
+        Err(e) => return e,
+    };
 
     // 构建匹配器
     let glob_set: Option<GlobSet> = if is_glob {
@@ -38,7 +45,7 @@ pub fn search_files(args_value: Value, config: &Config) -> String {
         None
     };
 
-    let files = walk_all_files(&args.directory, config);
+    let files = walk_all_files(&args.directory, &config);
 
     if files.is_empty() {
         return "指定目录下未找到任何文件。".to_string();

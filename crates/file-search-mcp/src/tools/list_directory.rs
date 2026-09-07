@@ -1,6 +1,7 @@
 use globset::{Glob, GlobMatcher};
 use serde::Deserialize;
 use serde_json::Value;
+use std::cell::Cell;
 use std::path::Path;
 use walkdir::WalkDir;
 
@@ -12,6 +13,8 @@ pub struct ListDirectoryArgs {
     pub depth: Option<i64>,
     pub show_hidden: Option<bool>,
     pub filter: Option<String>,
+    /// 本次调用额外忽略的路径正则，与启动参数 --ignore 合并生效。
+    pub ignore: Option<String>,
 }
 
 struct Entry {
@@ -30,6 +33,11 @@ pub fn list_directory(args_value: Value, config: &Config) -> String {
 
     let show_hidden = args.show_hidden.unwrap_or(false);
     let depth_param = args.depth.unwrap_or(1);
+
+    let config = match config.with_call_ignore(args.ignore.as_deref()) {
+        Ok(c) => c,
+        Err(e) => return e,
+    };
 
     // depth <= 0 视为无限递归，max_depth(0) 在 WalkDir 中表示只有根目录自身
     // WalkDir.max_depth 是从根目录计算的层数，1 = 只含直接子项
@@ -58,7 +66,7 @@ pub fn list_directory(args_value: Value, config: &Config) -> String {
     }
 
     let mut entries: Vec<Entry> = Vec::new();
-    let mut ignored_count: usize = 0;
+    let ignored_count = Cell::new(0usize);
     let mut hidden_filtered: usize = 0;
 
     let walker = WalkDir::new(&args.directory)
@@ -74,7 +82,19 @@ pub fn list_directory(args_value: Value, config: &Config) -> String {
                 _ => a.file_name().cmp(b.file_name()),
             }
         })
-        .into_iter();
+        .into_iter()
+        .filter_entry(|entry| {
+            if entry.path() == root {
+                return true;
+            }
+            let name = entry.file_name().to_string_lossy();
+            let full = entry.path().to_string_lossy();
+            if config.should_ignore(&name) || config.should_ignore(full.as_ref()) {
+                ignored_count.set(ignored_count.get() + 1);
+                return false;
+            }
+            true
+        });
 
     for result in walker {
         let entry = match result {
@@ -94,13 +114,6 @@ pub fn list_directory(args_value: Value, config: &Config) -> String {
         // 隐藏文件过滤（以 . 开头）
         if !show_hidden && name.starts_with('.') {
             hidden_filtered += 1;
-            continue;
-        }
-
-        // ignore 规则过滤
-        let full_str = entry_path.to_string_lossy();
-        if config.should_ignore(&name) || config.should_ignore(full_str.as_ref()) {
-            ignored_count += 1;
             continue;
         }
 
@@ -129,7 +142,7 @@ pub fn list_directory(args_value: Value, config: &Config) -> String {
         });
     }
 
-    format_output(&args.directory, &entries, ignored_count, hidden_filtered, show_hidden, max_depth)
+    format_output(&args.directory, &entries, ignored_count.get(), hidden_filtered, show_hidden, max_depth)
 }
 
 fn format_size(bytes: u64) -> String {

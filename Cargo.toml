@@ -2,6 +2,8 @@
 members = [
     "crates/file-search-mcp",
     "crates/command-bridge-mcp",
+    "crates/file-backup-mcp",
+    "crates/win-service-control-mcp",
 ]
 resolver = "2"
 

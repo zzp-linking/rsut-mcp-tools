@@ -1,2 +1,45 @@
+# Rust
 /target
+/target*
+**/*.rs.bk
+*.pdb
+
+# 旧项目备份（含独立 .git，不要提交）
+/temp/
+
+# 日志（wsm 会在 exe 旁写 service_history.log）
+*.log
+
+# 环境与密钥
+.env
+.env.*
+!.env.example
+
+# Cursor / VS Code 本地状态（规则若要共享可再单独放开）
 .cursor/
+.vscode/
+*.code-workspace
+
+# Codex 本地状态与沙箱残留
+.codex/
+**/.codex/
+
+# 其他 IDE
+.idea/
+.vs/
+*.suo
+*.user
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+$RECYCLE.BIN/
+
+# 备份与临时文件
+*~
+*.swp
+*.swo
+*.tmp
+*.bak

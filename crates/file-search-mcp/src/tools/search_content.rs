@@ -17,6 +17,8 @@ pub struct SearchInFilesArgs {
     pub case_sensitive: Option<bool>,
     pub path_filter: Option<String>,
     pub path_filter_mode: Option<String>,
+    /// 本次调用额外忽略的路径正则，与启动参数 --ignore 合并生效。
+    pub ignore: Option<String>,
     pub context_lines: Option<usize>,
     pub max_results: Option<usize>,
     /// 单行输出的最大字符数（默认 300）。超出部分会被截断并附注原始长度。
@@ -52,6 +54,11 @@ pub fn search_in_files(args_value: Value, config: &Config) -> String {
     let max_line_chars = args.max_line_chars.unwrap_or(300);
     let max_total_chars = args.max_total_chars.unwrap_or(8000);
 
+    let config = match config.with_call_ignore(args.ignore.as_deref()) {
+        Ok(c) => c,
+        Err(e) => return e,
+    };
+
     // 构建搜索正则
     let pattern_str = if is_regex {
         args.query.clone()
@@ -84,7 +91,7 @@ pub fn search_in_files(args_value: Value, config: &Config) -> String {
     // 遍历文件
     let files = walk_text_files(
         &args.directory,
-        config,
+        &config,
         path_filter_re.as_ref(),
         filter_mode,
     );
