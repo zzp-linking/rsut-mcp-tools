@@ -1,0 +1,13 @@
+[package]
+name = "file-search-mcp"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+regex = "1"
+walkdir = "2"
+globset = "0.4"
+rayon = "1"
+encoding_rs = "0.8"
